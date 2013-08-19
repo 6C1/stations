@@ -1,17 +1,58 @@
-import pygtk
+from os import system
+from time import sleep
+try:
+    import pygtk
+except:
+    x = raw_input("Stations requires PyGTK to run. Press [ENTER] to cancel, or type \"yes\" to automatically install.")
+    if x=="yes" or x=="Yes" or x=="YES":
+        print("Installation may require input of your 'sudo' password")
+        try:
+            system('sudo apt-get install python-gtk2')
+            print('...\n...\n...\nInstallation complete!')
+            sleep(1)
+            import pygtk
+            print('...')
+        except: 
+            print("Installation failed.")
+            exit()
+    else: exit()
 pygtk.require('2.0')
 import gtk
+import random
+import math
 
 def main():
-    base = Base()
-    base.main()
+    world = World()
+    base = Base(world)
+    gtk.main()
 
 class World:
     def __init__(self, num = 5):
-        pass
+        self.nodes = []
+        for i in xrange(num):
+            self.nodes.append(Node())
+
+class Node:
+    def __init__(self, coords=(-1,-1)):
+        self.coords = coords
+        if ( min(coords) < 0):
+            self.coords = (random.randint(0,800),random.randint(0,480))
+
+    def nearest(self, nodes):
+        mind = [self,0.00001]
+        for node in nodes:
+            if 0 < self.dist(node) < mind[1]:
+                mind = [node,self.dist(node)]
+        return mind[0]
+
+    def dist(self, other): 
+        return math.sqrt( (self.coords[0] - other.coords[0])**2 + (self.coords[1] - other.coords[1])**2)
+
 
 class Base:
-    def __init__(self):
+    def __init__(self, world):
+        self.world = world
+
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_title("STATIONS")
         self.window.set_position(gtk.WIN_POS_CENTER)
@@ -21,7 +62,7 @@ class Base:
         self.window.show()
 
         #looks
-        self.window.set_border_width(42)
+        self.window.set_border_width(10)
         self.window.set_resizable(False)
 
         # make vbox
@@ -50,22 +91,35 @@ class Base:
         self.area.size(800,480)
         self.vbox.add(self.area)
         self.area.show()
+        self.area.set_events(gtk.gdk.POINTER_MOTION_MASK | gtk.gdk.POINTER_MOTION_HINT_MASK )
+        self.area.connect("expose-event", self.area_expose_cb)
         self.drawable = self.area.window
 
+
         self.set_colors()
-        self.gc = self.drawable.new_gc(background=self.bluecolor)
-        self.drawable.draw_point(self.gc,42,42)
         self.area.show()
 
         # show ALL the things
         self.vbox.show()
         self.window.show()
 
+
+
     def destroy(self, widget, data=None):
         gtk.main_quit()
-        
-    def main(self):
-        gtk.main()
+    def area_expose_cb(self, area, event):        
+        self.style = self.area.get_style()
+        self.gc = self.drawable.new_gc()
+        for i in xrange(len(self.world.nodes)):
+            print self.world.nodes[i]
+            print self.world.nodes[i].nearest(self.world.nodes)
+            self.drawable.draw_line(self.gc, 
+                                    self.world.nodes[i].coords[0], 
+                                    self.world.nodes[i].coords[1], 
+                                    self.world.nodes[i].nearest(self.world.nodes).coords[0],
+                                    self.world.nodes[i].nearest(self.world.nodes).coords[1],
+                                    )
+        return True
 
     def set_colors(self):
         self.bluecolor = gtk.gdk.color_parse("#0A1E39")
