@@ -1,15 +1,17 @@
 from os import system
-from time import sleep
+from sys import maxint
+system('clear')
+import time
 try:
     import pygtk
 except:
-    x = raw_input("Stations requires PyGTK to run. Press [ENTER] to cancel, or type \"yes\" to automatically install.")
+    x = raw_input("Stations requires PyGTK to run. Press [ENTER] to cancel, or type \"yes\" to attempt automated installation.")
     if x=="yes" or x=="Yes" or x=="YES":
         print("Installation may require input of your 'sudo' password")
         try:
             system('sudo apt-get install python-gtk2')
             print('...\n...\n...\nInstallation complete!')
-            sleep(1)
+            time.sleep(1)
             import pygtk
             print('...')
         except: 
@@ -22,9 +24,14 @@ import random
 import math
 
 def main():
-    world = World()
+    print "\n\n\n\n\nInitialization -", time.strftime("%y%m%d %H%M%S %Z") 
+    print "World generation ...",
+    world = World(84)
+    print "success\nGraphics launch ...",
     base = Base(world)
+    print "success\n\n\n"
     gtk.main()
+    print "Shutting down...\n\n\n"
 
 class World:
     def __init__(self, num = 5):
@@ -38,10 +45,13 @@ class Node:
         if ( min(coords) < 0):
             self.coords = (random.randint(0,800),random.randint(0,480))
 
+    def __str__(self):
+        return "Node-["+str(self.coords[0])+","+str(self.coords[1])+"]"
+
     def nearest(self, nodes):
-        mind = [self,0.00001]
+        mind = [self,maxint]
         for node in nodes:
-            if 0 < self.dist(node) < mind[1]:
+            if node != self and self.dist(node) < mind[1]:
                 mind = [node,self.dist(node)]
         return mind[0]
 
@@ -95,10 +105,6 @@ class Base:
         self.area.connect("expose-event", self.area_expose_cb)
         self.drawable = self.area.window
 
-
-        self.set_colors()
-        self.area.show()
-
         # show ALL the things
         self.vbox.show()
         self.window.show()
@@ -107,18 +113,25 @@ class Base:
 
     def destroy(self, widget, data=None):
         gtk.main_quit()
-    def area_expose_cb(self, area, event):        
+    def area_expose_cb(self, area, event):
+        self.set_colors()
         self.style = self.area.get_style()
-        self.gc = self.drawable.new_gc()
+        self.gc = self.drawable.new_gc(background=self.bluecolor,foreground=self.retrocolor)
         for i in xrange(len(self.world.nodes)):
-            print self.world.nodes[i]
-            print self.world.nodes[i].nearest(self.world.nodes)
+            print "--", self.world.nodes[i], self.world.nodes[i].nearest(self.world.nodes)
             self.drawable.draw_line(self.gc, 
                                     self.world.nodes[i].coords[0], 
                                     self.world.nodes[i].coords[1], 
                                     self.world.nodes[i].nearest(self.world.nodes).coords[0],
                                     self.world.nodes[i].nearest(self.world.nodes).coords[1],
                                     )
+            self.drawable.draw_arc(self.gc,
+                                   False,
+                                   self.world.nodes[i].coords[0] - 7,
+                                   self.world.nodes[i].coords[1] - 7,
+                                   14,14,
+                                   0, 360*64
+                                   )
         return True
 
     def set_colors(self):
@@ -128,5 +141,4 @@ class Base:
         self.retrocolor = gtk.gdk.color_parse("#F1D653")
         self.mondocolor = gtk.gdk.color_parse("#F84160")
 
-print __name__
 if __name__=="__main__": main()
